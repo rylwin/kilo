@@ -102,9 +102,9 @@ void enableRawMode() {
   }
 }
 
-int countMatches(char *s, char match, int stop) {
+int countMatches(char *s, char match, size_t stop) {
   int count = 0;
-  for (int i = 0; i < sizeof(s) && i < stop; i++) {
+  for (size_t i = 0; i < sizeof(s) && i < stop; i++) {
     if (s[i] == match) count++;
   }
   return count;
