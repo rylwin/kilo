@@ -66,6 +66,9 @@ struct abuf {
 
 #define ABUF_INIT {NULL, 0}
 
+void editorRefreshScreen();
+char *editorPrompt();
+
 void abAppend(struct abuf *ab, const char *s, int len) {
   char *new = realloc(ab->b, ab->len + len);
 
@@ -501,7 +504,13 @@ void editorSetStatusMessageIoError() {
 }
 
 void editorSave() {
-  if (E.filename == NULL) return;
+  if (E.filename == NULL) {
+    E.filename = editorPrompt("Save as: %s");
+    if (E.filename == NULL) {
+      editorSetStatusMessage("Save aborted");
+      return;
+    }
+  }
 
   int len;
   char *buf = editorRowsToString(&len);
@@ -523,6 +532,41 @@ void editorSave() {
     editorSetStatusMessageIoError();
   }
   free(buf);
+}
+
+char *editorPrompt(char *prompt) {
+  size_t bufsize = 128;
+  char *buf = malloc(bufsize);
+
+  size_t buflen = 0;
+  buf[0] = '\0';
+
+  while (1) {
+    editorSetStatusMessage(prompt, buf);
+    editorRefreshScreen();
+
+    int c = editorReadKey();
+    if (c == '\r') {
+      if (buflen != 0) {
+        editorSetStatusMessage("");
+        return buf;
+      }
+    } else if (c == '\x1b') {
+      editorSetStatusMessage("");
+      free(buf);
+      return NULL;
+    } else if (c == BACKSPACE || c == DEL_KEY || c == CTRL_KEY('h')) {
+      if (buflen != 0) buf[--buflen] = '\0';
+    } else if (!iscntrl(c)) {
+      if (buflen == bufsize - 1) {
+        bufsize *= 2;
+        buf = realloc(buf, bufsize);
+      }
+      buf[buflen] = c;
+      buflen++;
+      buf[buflen] = '\0';
+    }
+  }
 }
 
 void editorMoveCursor(int key) {
